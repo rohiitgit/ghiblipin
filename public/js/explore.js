@@ -1,6 +1,43 @@
 export function initializeExplore(supabaseClient) {
     const gallery = document.getElementById('gallery');
     const galleryLoading = document.getElementById('gallery-loading');
+    const imagePopup = document.getElementById('image-popup');
+    const popupImage = document.getElementById('popup-image');
+    const popupTitle = document.getElementById('popup-title');
+    const popupUsername = document.getElementById('popup-username');
+    const closePopup = document.querySelector('.close-popup');
+    
+    // Close popup event
+    closePopup.addEventListener('click', () => {
+        imagePopup.classList.add('closing');
+        setTimeout(() => {
+            imagePopup.classList.remove('active');
+            imagePopup.classList.remove('closing');
+        }, 300);
+    });
+    
+    // Close popup when clicking outside the image
+    imagePopup.addEventListener('click', (e) => {
+        if (e.target === imagePopup) {
+            imagePopup.classList.add('closing');
+            setTimeout(() => {
+                imagePopup.classList.remove('active');
+                imagePopup.classList.remove('closing');
+            }, 300);
+        }
+    });
+    
+    // Open popup with image data
+    function openImagePopup(imageUrl, title, username) {
+        popupImage.src = imageUrl;
+        popupTitle.textContent = title;
+        popupUsername.textContent = `@${username}`;
+        
+        // Show popup after image has loaded
+        popupImage.onload = () => {
+            imagePopup.classList.add('active');
+        };
+    }
     
     async function loadGallery() {
         gallery.innerHTML = '';
@@ -40,6 +77,11 @@ export function initializeExplore(supabaseClient) {
                     });
                     pin.addEventListener('mouseleave', () => {
                         img.style.transform = 'scale(1)';
+                    });
+                    
+                    // Add click event to open popup
+                    pin.addEventListener('click', () => {
+                        openImagePopup(post.image_url, post.title, post.twitter_username);
                     });
                     
                     gallery.appendChild(pin);

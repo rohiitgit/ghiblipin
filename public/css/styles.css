@@ -670,3 +670,106 @@
       grid-template-columns: repeat(3, 1fr);
     }
   }
+
+  /* Add these styles to your existing styles.css file */
+
+/* Image Popup Modal */
+.image-popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .image-popup.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+  }
+  
+  .popup-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90vh;
+    margin: 0 auto;
+    animation: zoomIn 0.3s ease;
+  }
+  
+  @keyframes zoomIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  .close-popup {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: white;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1010;
+    transition: transform 0.2s ease;
+  }
+  
+  .close-popup:hover {
+    transform: scale(1.2);
+  }
+  
+  #popup-image {
+    display: block;
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .popup-details {
+    background-color: white;
+    padding: 15px;
+    border-radius: 0 0 8px 8px;
+    margin-top: -5px;
+  }
+  
+  .popup-details h3 {
+    margin: 0 0 8px 0;
+    color: var(--dark);
+    font-size: 1.2rem;
+  }
+  
+  .popup-details p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  /* Make pins cursor indicate they're clickable */
+  .pin {
+    cursor: pointer;
+  }
+  
+  .profile-pin {
+    cursor: pointer;
+  }
+  
+  /* Animation for when the popup is closing */
+  .image-popup.closing {
+    opacity: 0;
+  }
+  
+  .image-popup.closing .popup-content {
+    animation: zoomOut 0.3s ease;
+  }
+  
+  @keyframes zoomOut {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(0.9); opacity: 0; }
+  }
