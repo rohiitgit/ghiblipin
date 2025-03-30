@@ -1,12 +1,15 @@
 export function initializeExplore(supabaseClient) {
     const gallery = document.getElementById('gallery');
     const galleryLoading = document.getElementById('gallery-loading');
+<<<<<<< HEAD
     
     // Helper function to determine random heights for Pinterest-style layout
     function getRandomHeight() {
         const heights = [200, 250, 300, 350];
         return heights[Math.floor(Math.random() * heights.length)];
     }
+=======
+>>>>>>> parent of b7a94a5 (added image popup to view feature)
     
     async function loadGallery() {
         gallery.innerHTML = '';

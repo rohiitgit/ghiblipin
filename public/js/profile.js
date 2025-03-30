@@ -3,22 +3,6 @@ export function initializeProfile(supabaseClient, username) {
     const profileName = document.getElementById('profile-name');
     const profileGallery = document.getElementById('profile-gallery');
     const profileLoading = document.getElementById('profile-loading');
-    const imagePopup = document.getElementById('image-popup');
-    const popupImage = document.getElementById('popup-image');
-    const popupTitle = document.getElementById('popup-title');
-    const popupUsername = document.getElementById('popup-username');
-    
-    // Open popup with image data
-    function openImagePopup(imageUrl, title) {
-        popupImage.src = imageUrl;
-        popupTitle.textContent = title;
-        popupUsername.textContent = `@${username}`;
-        
-        // Show popup after image has loaded
-        popupImage.onload = () => {
-            imagePopup.classList.add('active');
-        };
-    }
     
     async function loadProfile() {
         profileGallery.innerHTML = '';
@@ -58,11 +42,6 @@ export function initializeProfile(supabaseClient, username) {
                     });
                     profilePin.addEventListener('mouseleave', () => {
                         img.style.transform = 'scale(1)';
-                    });
-                    
-                    // Add click event to open popup
-                    profilePin.addEventListener('click', () => {
-                        openImagePopup(post.image_url, post.title);
                     });
                     
                     profileGallery.appendChild(profilePin);
