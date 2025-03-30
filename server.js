@@ -20,33 +20,34 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Serve login page for the root path
+// Serve the main HTML file for the root path - either login or index
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
 });
 
-// Serve the main app for specific paths
+// Explicitly serve the main app
 app.get('/index.html', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
-// Handle OAuth redirects
-app.get('/auth/callback', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+// Explicitly serve the login page
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
 });
 
-// Add a special route for handling callbacks
+// Add special handling for auth callbacks
 app.get('/auth/callback', (req, res) => {
-  console.log('Auth callback received with params:', req.query);
-  // Redirect to your app
+  console.log('Auth callback received, redirecting to app');
   res.redirect('/index.html');
 });
 
-// Fallback - serve the appropriate file based on the path
+// Fallback - serve the main HTML file for all other routes
 app.get('*', (req, res) => {
-  if (req.path.includes('auth') || req.path.includes('callback')) {
+  // If it's an API-looking route or auth route, direct to index
+  if (req.path.includes('/api/') || req.path.includes('/auth/')) {
     res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
   } else {
+    // Otherwise show login
     res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
   }
 });
