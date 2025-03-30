@@ -8,84 +8,56 @@ async function initializeSupabase() {
     const response = await fetch('/api/config');
     const config = await response.json();
     
-    // Initialize Supabase client with fetched credentials
+    // Initialize Supabase client with explicit storage configuration
     supabaseClient = supabase.createClient(
       config.supabaseUrl,
-      config.supabaseKey
+      config.supabaseKey,
+      {
+        auth: {
+          storage: window.localStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      }
     );
     
     console.log('Supabase client initialized for main app');
     
-    // Check for just authenticated flag
-    const justAuthenticated = localStorage.getItem('justAuthenticated');
-    if (justAuthenticated === 'true') {
-      console.log('User just authenticated, clearing flag');
-      localStorage.removeItem('justAuthenticated');
+    // Check for hash fragments from auth redirect
+    const fragment = window.location.hash;
+    if (fragment.includes('access_token') || fragment.includes('refresh_token')) {
+      console.log('Auth tokens detected in URL');
+      // The detectSessionInUrl option should handle this automatically
     }
     
     // Check if user is logged in
     console.log('Checking for active session...');
     const { data, error } = await supabaseClient.auth.getSession();
     
-    console.log('Raw session data:', data);
-    console.log('Session exists:', !!data?.session);
+    console.log('Session data:', data);
     
     if (error) {
       console.error('Session error:', error);
+      redirectToLogin();
+      return;
     }
-    
-    // Get stored user ID as fallback
-    const storedUserId = localStorage.getItem('ghiblipin_user_id');
     
     if (!data?.session) {
-      console.log('No session found initially, checking for stored user ID...');
-      
-      if (storedUserId) {
-        console.log('Found stored user ID, attempting to recover session...');
-        
-        // Try refreshing the session
-        const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
-        
-        if (refreshError || !refreshData?.session) {
-          console.log('Failed to recover session, double checking with delay...');
-          
-          // Wait a moment and try one more time
-          setTimeout(async () => {
-            const { data: retryData } = await supabaseClient.auth.getSession();
-            
-            if (!retryData?.session) {
-              console.log('Still no session after retry, redirecting to login');
-              localStorage.removeItem('ghiblipin_user_id'); // Clear invalid ID
-              redirectToLogin();
-            } else {
-              console.log('Session found on retry!');
-              // Continue with app initialization
-              currentUser = retryData.session.user;
-              completeInitialization(currentUser);
-            }
-          }, 1500);
-          
-          return; // Exit early while we wait for timeout
-        } else {
-          // Refresh successful
-          console.log('Session recovered successfully!');
-          currentUser = refreshData.session.user;
-        }
-      } else {
-        console.log('No stored user ID found, redirecting to login');
-        redirectToLogin();
-        return;
-      }
-    } else {
-      // We have a valid session
-      currentUser = data.session.user;
-      
-      // Store user ID for backup auth
-      localStorage.setItem('ghiblipin_user_id', currentUser.id);
+      console.log('No session found, redirecting to login');
+      redirectToLogin();
+      return;
     }
     
-    // Complete the initialization with the user
-    completeInitialization(currentUser);
+    // We have a valid session
+    currentUser = data.session.user;
+    console.log('User authenticated:', currentUser.id);
+    
+    // Check if profile exists and create if needed
+    await createProfileIfNeeded(currentUser);
+    
+    // Dispatch event so other scripts know Supabase is ready
+    window.dispatchEvent(new CustomEvent('supabaseReady', { detail: { user: currentUser } }));
     
   } catch (error) {
     console.error('Failed to initialize Supabase client:', error);
@@ -98,25 +70,7 @@ async function initializeSupabase() {
   }
 }
 
-function completeInitialization(user) {
-  // Check if user exists in profiles table and create if not
-  createUserProfileIfNeeded(user);
-  
-  // Dispatch event so other scripts know Supabase is ready
-  window.dispatchEvent(new CustomEvent('supabaseReady', { detail: { user: user } }));
-  
-  // Add listener for auth state changes
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed in main app:', event);
-    
-    if (event === 'SIGNED_OUT') {
-      localStorage.removeItem('ghiblipin_user_id');
-      redirectToLogin();
-    }
-  });
-}
-
-async function createUserProfileIfNeeded(user) {
+async function createProfileIfNeeded(user) {
   try {
     // First, check if the user exists in your database
     const { data: profile, error: fetchError } = await supabaseClient
@@ -148,7 +102,7 @@ async function createUserProfileIfNeeded(user) {
         console.error('Error creating profile:', insertError);
       }
     } else {
-      console.log('User profile exists:', profile.twitter_username);
+      console.log('User profile exists');
     }
   } catch (profileError) {
     console.error('Profile management error:', profileError);
@@ -164,7 +118,6 @@ async function logout() {
   if (!supabaseClient) return;
   
   try {
-    localStorage.removeItem('ghiblipin_user_id');
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
     
