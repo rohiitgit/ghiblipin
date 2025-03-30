@@ -35,6 +35,13 @@ app.get('/auth/callback', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
+// Add a special route for handling callbacks
+app.get('/auth/callback', (req, res) => {
+  console.log('Auth callback received with params:', req.query);
+  // Redirect to your app
+  res.redirect('/index.html');
+});
+
 // Fallback - serve the appropriate file based on the path
 app.get('*', (req, res) => {
   if (req.path.includes('auth') || req.path.includes('callback')) {

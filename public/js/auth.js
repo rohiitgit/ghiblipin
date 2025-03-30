@@ -47,19 +47,17 @@ supabaseClient?.auth.onAuthStateChange((event, session) => {
 
 async function signInWithTwitter() {
     try {
-        const { data, error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'twitter',
-            options: {
-                // This should be YOUR application's URL where you want users redirected after auth
-                redirectTo: 'https://ghiblipin.vercel.app/index.html'
-            }
-        });
-        if (error) throw error;
+      // Use the simplest form, let Supabase handle redirects
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'twitter'
+      });
+      
+      if (error) throw error;
     } catch (error) {
-        console.error('Twitter login error:', error);
-        showErrorMessage('Failed to connect with Twitter. Please try again.');
+      console.error('Twitter login error:', error);
+      showErrorMessage('Failed to connect with Twitter. Please try again.');
     }
-}
+  }
 
 function setupTwitterLogin() {
     const twitterLoginBtn = document.getElementById('twitter-login-btn');
