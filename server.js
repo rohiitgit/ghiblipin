@@ -20,9 +20,28 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Serve the main HTML file for all routes (for SPA)
-app.get('*', (req, res) => {
+// Serve login page for the root path
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
+});
+
+// Serve the main app for specific paths
+app.get('/index.html', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+});
+
+// Handle OAuth redirects
+app.get('/auth/callback', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+});
+
+// Fallback - serve the appropriate file based on the path
+app.get('*', (req, res) => {
+  if (req.path.includes('auth') || req.path.includes('callback')) {
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+  } else {
+    res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
+  }
 });
 
 app.listen(PORT, () => {

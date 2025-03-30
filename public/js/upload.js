@@ -3,10 +3,13 @@ export function initializeUpload(supabaseClient, callbacks) {
     const uploadArea = document.getElementById('upload-area');
     const photoUpload = document.getElementById('photo-upload');
     const imagePreview = document.getElementById('image-preview');
-    const twitterUsername = document.getElementById('twitter-username');
     const photoTitle = document.getElementById('photo-title');
     const loading = document.getElementById('loading');
     const uploadMessage = document.getElementById('upload-message');
+    
+    // Get Twitter info from authenticated user
+    const twitterUsername = callbacks?.user?.user_metadata?.user_name || '';
+    const twitterUserUrl = `https://twitter.com/${twitterUsername}`;
     
     let selectedFile = null;
     
@@ -37,11 +40,17 @@ export function initializeUpload(supabaseClient, callbacks) {
             return;
         }
         
-        const username = twitterUsername.value.trim();
         const title = photoTitle.value.trim();
         
-        if (!username || !title) {
-            uploadMessage.textContent = 'Please fill in all fields';
+        if (!title) {
+            uploadMessage.textContent = 'Please add a title for your image';
+            uploadMessage.className = 'message error';
+            uploadMessage.style.display = 'block';
+            return;
+        }
+        
+        if (!twitterUsername) {
+            uploadMessage.textContent = 'Twitter account information is missing. Please try logging in again.';
             uploadMessage.className = 'message error';
             uploadMessage.style.display = 'block';
             return;
@@ -64,14 +73,20 @@ export function initializeUpload(supabaseClient, callbacks) {
                 .from('ghibli-images')
                 .getPublicUrl(`public/${filename}`);
             
-            // 3. Insert a record into the database
+            // 3. Get user's Twitter profile picture
+            const avatar_url = callbacks?.user?.user_metadata?.avatar_url || '';
+            
+            // 4. Insert a record into the database
             const { data, error } = await supabaseClient
                 .from('ghibli_posts')
                 .insert([
                     {
-                        twitter_username: username,
+                        twitter_username: twitterUsername,
+                        twitter_url: twitterUserUrl,
+                        twitter_avatar: avatar_url,
                         title: title,
                         image_url: publicUrl,
+                        user_id: callbacks?.user?.id || '',
                         created_at: new Date()
                     }
                 ]);
@@ -90,7 +105,7 @@ export function initializeUpload(supabaseClient, callbacks) {
             
             // Call success callback
             if (callbacks && callbacks.onUploadSuccess) {
-                callbacks.onUploadSuccess(username);
+                callbacks.onUploadSuccess(twitterUsername);
             }
             
         } catch (error) {

@@ -10,11 +10,16 @@ const profilePage = document.getElementById('profile-page');
 const navExplore = document.getElementById('nav-explore');
 const navProfile = document.getElementById('nav-profile');
 const bottomNav = document.getElementById('bottom-nav');
+const exploreOnlyBtn = document.getElementById('explore-only-btn');
+const userAvatarEl = document.getElementById('user-avatar');
+const userNameEl = document.getElementById('user-name');
+const logoutBtn = document.getElementById('logout-btn');
 
 // Global state
-let currentUsername = null;
+let hasVisitedExplore = false; // Track if user has visited explore page
 let exploreModule = null;
 let profileModule = null;
+let currentUser = null;
 
 // Page navigation functions
 function showUploadPage() {
@@ -25,7 +30,9 @@ function showUploadPage() {
     navProfile.classList.remove('active');
     
     // Hide bottom navigation on upload page
-    bottomNav.classList.remove('visible');
+    if (!hasVisitedExplore) {
+        bottomNav.classList.remove('visible');
+    }
 }
 
 function showExplorePage() {
@@ -37,6 +44,7 @@ function showExplorePage() {
     
     // Show bottom navigation
     bottomNav.classList.add('visible');
+    hasVisitedExplore = true; // User has now visited explore page
     
     // Refresh explore data every time we switch to this tab
     if (exploreModule) {
@@ -55,24 +63,44 @@ function showProfilePage() {
     bottomNav.classList.add('visible');
     
     // Refresh profile data every time we switch to this tab
-    if (profileModule && currentUsername) {
+    if (profileModule && currentUser) {
         profileModule.refresh();
     }
 }
 
-// Initialize the app
-function initApp() {
-    // Check for stored username
-    currentUsername = localStorage.getItem('twitterUsername');
-    
-    if (currentUsername) {
-        // If user has uploaded before, show explore page
-        showExplorePage();
-        exploreModule = initializeExplore(supabaseClient);
-    } else {
-        // First-time user, show upload page
-        showUploadPage();
+// Update user information in the header
+function updateUserInfo(user) {
+    // If elements exist in the DOM
+    if (userAvatarEl && user.user_metadata && user.user_metadata.avatar_url) {
+        userAvatarEl.src = user.user_metadata.avatar_url;
+        userAvatarEl.style.display = 'block';
     }
+    
+    if (userNameEl && user.user_metadata && user.user_metadata.user_name) {
+        userNameEl.textContent = user.user_metadata.user_name;
+    }
+}
+
+// Initialize the app
+function initApp(event) {
+    // Get user information from the event
+    currentUser = event?.detail?.user;
+    
+    if (currentUser) {
+        // Update user information in the UI
+        updateUserInfo(currentUser);
+    }
+    
+    // Set up logout functionality
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            logout(); // Function from config.js
+        });
+    }
+    
+    // Start by showing the explore page for authenticated users
+    showExplorePage();
+    exploreModule = initializeExplore(supabaseClient);
     
     // Bottom navigation
     navExplore.addEventListener('click', function() {
@@ -83,28 +111,40 @@ function initApp() {
     });
     
     navProfile.addEventListener('click', function() {
-        if (currentUsername) {
-            showProfilePage();
-            if (!profileModule) {
-                profileModule = initializeProfile(supabaseClient, currentUsername);
-            }
-        } else {
-            showUploadPage();
-            document.getElementById('upload-message').textContent = 'Please upload a photo first to view your profile';
-            document.getElementById('upload-message').className = 'message error';
-            document.getElementById('upload-message').style.display = 'block';
+        showProfilePage();
+        if (!profileModule) {
+            // Initialize with Twitter username from auth
+            const twitterUsername = currentUser?.user_metadata?.user_name || '';
+            profileModule = initializeProfile(supabaseClient, twitterUsername);
         }
     });
     
-    // Initialize upload module
-    initializeUpload(supabaseClient, { 
-        onUploadSuccess: function(username) {
-            currentUsername = username;
-            localStorage.setItem('twitterUsername', username);
+    // "Explore Only" button handler
+    if (exploreOnlyBtn) {
+        exploreOnlyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showExplorePage();
+            if (!exploreModule) {
+                exploreModule = initializeExplore(supabaseClient);
+            }
             
+            // Show only the Explore tab in the navigation
+            navExplore.style.display = 'flex';
+            navProfile.style.display = 'none';
+        });
+    }
+    
+    // Initialize upload module with Twitter information
+    initializeUpload(supabaseClient, { 
+        user: currentUser,
+        onUploadSuccess: function() {
             // Wait briefly then show explore page with nav
             setTimeout(() => {
                 showExplorePage();
+                
+                // Make sure both navigation options are visible
+                navExplore.style.display = 'flex';
+                navProfile.style.display = 'flex';
                 
                 // Initialize modules if they haven't been yet
                 if (!exploreModule) {
@@ -114,8 +154,9 @@ function initApp() {
                 }
                 
                 // Initialize profile module for future use
-                if (!profileModule) {
-                    profileModule = initializeProfile(supabaseClient, currentUsername);
+                if (!profileModule && currentUser) {
+                    const twitterUsername = currentUser?.user_metadata?.user_name || '';
+                    profileModule = initializeProfile(supabaseClient, twitterUsername);
                 }
             }, 1500);
         }
