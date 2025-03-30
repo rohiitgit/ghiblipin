@@ -49,6 +49,9 @@ async function signInWithTwitter() {
   try {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'twitter',
+        options: {
+            redirectTo: `https://zmkyhurmhjuwqjgblyas.supabase.co/auth/v1/callback`
+        }
     });
     
     if (error) throw error;
