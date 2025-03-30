@@ -15,60 +15,26 @@ async function initializeSupabase() {
     
     console.log('Supabase client initialized for login');
     
-    // Check if user is already logged in
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    
-    if (session) {
-      console.log('Existing session found, redirecting to explore page');
-      
-      // Store user ID for backup auth
-      localStorage.setItem('ghiblipin_user_id', session.user.id);
-      
-      // Redirect to explore page
-      window.location.href = '/index.html';
-    } else {
-      console.log('No existing session, showing login screen');
-      
-      // Setup login button
-      setupTwitterLogin();
-      
-      // Add auth state change listener
-      setupAuthListener();
-    }
+    // Setup login button
+    setupTwitterLogin();
   } catch (error) {
     console.error('Failed to initialize Supabase client:', error);
     showErrorMessage('Error connecting to the server. Please try again later.');
   }
 }
 
-function setupAuthListener() {
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log('Auth state changed:', event);
-    
-    if (event === 'SIGNED_IN' && session) {
-      console.log('User signed in successfully!', session.user.id);
-      
-      // Store auth info for reliable session recovery
-      localStorage.setItem('justAuthenticated', 'true');
-      localStorage.setItem('ghiblipin_user_id', session.user.id);
-      
-      // Give a brief moment for everything to sync
-      setTimeout(() => {
-        // Redirect to the main app
-        window.location.href = '/index.html';
-      }, 500);
-    }
-  });
-}
-
 async function signInWithTwitter() {
   try {
-    // Use the simplest form without any extra options
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'twitter'
+    // Direct Twitter sign-in with site URL
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'twitter',
+      options: {
+        redirectTo: window.location.origin + '/index.html'
+      }
     });
     
     if (error) throw error;
+    
   } catch (error) {
     console.error('Twitter login error:', error);
     showErrorMessage('Failed to connect with Twitter. Please try again.');
