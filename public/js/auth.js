@@ -50,7 +50,7 @@ async function signInWithTwitter() {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'twitter',
         options: {
-            redirectTo: `https://zmkyhurmhjuwqjgblyas.supabase.co/auth/v1/callback`
+            redirectTo: `https://ghiblipin.vercel.app/index.html`
         }
     });
     
