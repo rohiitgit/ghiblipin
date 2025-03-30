@@ -7,16 +7,40 @@ async function initializeSupabase() {
     const response = await fetch('/api/config');
     const config = await response.json();
     
-    // Initialize Supabase client with fetched credentials
+    // Initialize Supabase client with explicit storage configuration
     supabaseClient = supabase.createClient(
       config.supabaseUrl,
-      config.supabaseKey
+      config.supabaseKey,
+      {
+        auth: {
+          storage: window.localStorage,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      }
     );
     
     console.log('Supabase client initialized for login');
     
-    // Setup login button
-    setupTwitterLogin();
+    // Check if there's a hash fragment from OAuth redirect
+    const fragment = window.location.hash;
+    if (fragment.includes('access_token') || fragment.includes('refresh_token')) {
+      console.log('Auth tokens detected in URL, processing login...');
+      // The detectSessionInUrl option should handle this automatically
+    }
+    
+    // Check if user is already logged in
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    if (session) {
+      console.log('Session detected, redirecting to app');
+      window.location.href = '/index.html';
+    } else {
+      console.log('No session found, showing login form');
+      setupTwitterLogin();
+    }
+    
   } catch (error) {
     console.error('Failed to initialize Supabase client:', error);
     showErrorMessage('Error connecting to the server. Please try again later.');
@@ -25,7 +49,7 @@ async function initializeSupabase() {
 
 async function signInWithTwitter() {
   try {
-    // Direct Twitter sign-in with site URL
+    // Twitter OAuth with explicit redirectTo
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'twitter',
       options: {
@@ -34,6 +58,8 @@ async function signInWithTwitter() {
     });
     
     if (error) throw error;
+    
+    console.log('Auth initiated:', data);
     
   } catch (error) {
     console.error('Twitter login error:', error);
@@ -53,7 +79,7 @@ function setupTwitterLogin() {
       // Call the signInWithTwitter function
       await signInWithTwitter();
       
-      // Reset button (will only run if there's an error)
+      // Reset button after a delay (in case of error)
       setTimeout(() => {
         twitterLoginBtn.disabled = false;
         twitterLoginBtn.innerHTML = '<i class="fab fa-twitter"></i> Continue with Twitter';
